@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<head>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.9/semantic.min.css"/> 
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.9/semantic.min.js"></script> 
+ <style>
+        body{
+        background: lightgrey;
+        background-size: cover;
+        }        
+</style>
+</head>
+<html>
+    <body>
+        <button id="mode">MySQL模式</button>
+        <textarea style="display: none"  type="text" id="SQLquery" value="select * from Staff" rows="10" cols="40"></textarea>
+        <div id="usermode" style="display: block">
+                <div id="UserQuery">Your Query</div>
+                <select id="Sel" style="display: none" class="ui fluid search dropdown">
+                                <div class="field">
+                                        <option value=" ">輸入的內容</option>
+                                        <option value="1">數字</option>
+                                        <option value="2">字串</option>
+                                        <option value="3">attribute</option>
+                                </div>
+                                <input type="text" id="input" value=" " style="display: none">
+                                <button id="sub" style="display: none">送出</button>
+                </select>
+                <div class="ui form">
+                        <select id="Basic" class="ui fluid search dropdown">
+                                <div class="field">
+                                        <option value=" ">使用功能</option>
+                                        <option value="SELECT">select</option>
+                                        <option value="FROM">from</option>
+                                        <option value="WHERE">where</option>
+                                        <option value="DELETE">delete</option>
+                                        <option value="INSERT INTO">insert into</option>
+                                        <option value="UPDATE">update</option>
+                                </div>
+                        </select>
+                        <select id="Nest" class="ui fluid search dropdown">
+                                <div class="field">
+                                <option value=" ">巢狀</option>
+                                <option value="IN">IN</option>
+                                <option value="NOT IN">NOT IN</option>
+                                <option value="EXIST">EXIST</option>
+                                <option value="NOT EXIST">NOT EXIST</option>
+                                </div>
+                        </select>
+                        <select id="Aggregate" class="ui fluid search dropdown">
+                                <div class="field">
+                                <option value=" ">計算</option>
+                                <option value="COUNT">COUNT</option>
+                                <option value="SUM">SUM</option>
+                                <option value="MAX">MAX</option>
+                                <option value="MIN">MIN</option>
+                                <option value="AVG">AVG</option>
+                                <option value="HAVING">HAVING</option>
+                                </div>
+                        </select>
+                        <select id="Logic" class="ui fluid search dropdown">
+                                <div class="field">
+                                <option value=" ">邏輯符號</option>
+                                <option value="AND">AND</option>
+                                <option value="OR">OR</option>
+                                <option value="NOT">NOT</option>
+                                <option value=">">大於</option>
+                                <option value="<">小於</option>
+                                <option value="=">等於</option>
+                                </div>
+                        </select>
+                    <select id="tables" class="ui fluid search dropdown">
+                            <option value=" ">表格</option>    
+                            <option value="*">所有</option>                  
+                    </select>
+                    <select id="attribute" class="ui fluid search dropdown">
+                            <option value=" ">欄位</option>
+                    </select>
+                    
+                </div>
+        </div>
+        <button id="redo" style="display: none">修正</button>
+        <button class="trigger">查尋</button>
+        <table class="ui celled inverted table" id="result"></table>
+    </body>
+</html>
+
+<script> 
+        var search="";// Query
+        let mode =0;//初始為使用者模式
+        var table_config = {
+
+        }
+        function Usermode(){
+            search ="";
+            //讀取table中的attribute
+             // 存入使用者的選擇
+             let a = document.getElementById("redo");
+             a.style.display = "block";
+             
+             //更正鍵功能
+             $("#redo").click(function(){
+                search = search.substring(0, search.length-1);
+                document.getElementById("UserQuery").innerHTML = search;
+             });
+
+            //選定特定Table後會出現對應的欄位
+             $("#tables").change(function(){
+                let attribute =[];
+                let Table = $("#tables").val();
+                let atr=" ";
+                let j=0;
+                 console.log(table_config);
+                 for (i in table_config[Table]){
+                     attribute[i]=table_config[Table][j];
+                     atr = atr +"<option value=\""+table_config[Table][j]+"\">"+table_config[Table][j];
+                     atr = atr +"</option>";
+                     j++;
+                     console.log("Hi");
+                 }
+                     atr = atr + "<option value=\"*\">"+"全部"+"</option>";
+                     $('#attribute').html(atr);
+           });
+
+            ////
+            x = document.getElementById("UserQuery").innerHTML;
+            $("#Basic").change(function(){
+                search =  search +" "+ $("#Basic").val();
+                document.getElementById("UserQuery").innerHTML = search;
+            });
+            $("#Nest").change(function(){
+                search = search +" "+ $("#Nest").val();
+                document.getElementById("UserQuery").innerHTML = search;
+            });
+            $("#Aggregate").change(function(){
+                search = search +" "+ $("#Aggregate").val();
+                document.getElementById("UserQuery").innerHTML = search;
+            });
+            $("#tables").change(function(){
+                search = search +" "+ $("#tables").val()+".";
+                if(search.indexOf("FROM")!=-1){search = search.substring(0, search.length-1);}
+                document.getElementById("UserQuery").innerHTML = search;
+            });
+            $("#attribute").change(function(){
+                search = search +" "+ $("#attribute").val();
+                document.getElementById("UserQuery").innerHTML = search;
+            });
+            $("#Logic").change(function(){
+                search = search +" "+ $("#Logic").val();
+                document.getElementById("UserQuery").innerHTML = search;
+                if($("#Logic").val()==">"||$("#Logic").val()=="<"||$("#Logic").val()=="="){
+                   document.getElementById('Sel').style.display = "block";
+                   $("#Sel").change(function(){
+                    let key = $("#Sel").val();
+                    if(key==1) {
+                                document.getElementById("input").style.display = "block";
+                                document.getElementById("sub").style.display = "block";
+                                $("#sub").click(function(){
+                                    search = search +" "+$("#input").val();
+                                    document.getElementById("input").style.display = "none";
+                                    document.getElementById("sub").style.display = "none";
+                                    document.getElementById("UserQuery").innerHTML = search;
+                                })
+                                    }
+                     else if (key==2){
+                                document.getElementById("input").style.display = "block";
+                                document.getElementById("sub").style.display = "block";
+                                $("#sub").click(function(){
+                                    search = search +" \""+ $("#input").val();
+                                    search = search + "\"";
+                                    document.getElementById("input").style.display = "none";
+                                    document.getElementById("sub").style.display = "none";
+                                    document.getElementById("UserQuery").innerHTML = search;
+                                })
+                            }                      
+                   });
+                }
+                
+            });
+        }
+
+
+
+        //////////讀取/////////////
+        //讀取所有Table的名字
+        $.ajax({
+                      url: '/table',
+                      method:'post',
+                      dataType:'json',
+                      async:false,
+                    }).done(function(data){
+                        //console.log(JSON.stringify(data));
+                        if(data.success){
+                            //List all tables
+                            let html="<div class=\"field\"> <option value=\"\">表格</option>";
+                            for(i in data.result){
+                                html = html +"<option value=\""+data.result[i]['table_name']+"\">"+data.result[i]['table_name'];
+                                html = html + "</option>";
+                                table_config[data.result[i]["table_name"]]=[];
+                            }
+                            html = html + "</div>";
+                            $('#tables').html(html);
+                            return;
+                        }
+                    }).fail(function(){
+                        console.log('failed...');
+                        return;
+                    });
+
+        //讀取Attribute的名字
+         $.ajax({
+                      url: '/attribute',
+                      method:'post',
+                      dataType:'json'
+                    }).done(function(data){
+                        //console.log(JSON.stringify(data));
+                        if(data.success){
+                          for(i in data.result){
+                              table_config[data.result[i]["table_name"]].push(data.result[i]["column_name"]);
+                          }
+                          //console.log("ss : "+JSON.stringify(table_config));
+                        }
+                        return;
+                    }).fail(function(){
+                        console.log('failed...');
+                        return;
+                    });
+        /////////////////讀取結束/////////////////
+
+        // 選擇模式
+        $('#mode').click(function(){
+         console.log("click");
+         x= document.getElementById('SQLquery');
+         y= document.getElementById('usermode');
+        if (x.style.display === "none") {
+                x.style.display = "block";
+                y.style.display = "none";
+                document.getElementById('mode').innerHTML = "MySQL模式";
+                mode =1;
+            } 
+        else {
+        x.style.display = "none";
+        y.style.display = "block";
+        document.getElementById('mode').innerHTML = "使用者模式";
+        Usermode();
+        mode =0;
+        }
+        });
+
+
+        //使用者模式操作//
+        
+        //按下查詢後開始送出搜尋
+        $('.trigger').click(function(){
+                if(mode){
+                    search =$("#SQLquery").val();
+                }
+                Query(search);
+                search="";
+                });
+        
+        //向DBMS執行Query
+        function Query(search){
+             search = search.toLowerCase();
+            console.log(typeof(search));
+            //若一開始為select
+            if(search.indexOf("select")!=-1){
+            
+              //判斷是否為Aggregate Function
+              if(search.indexOf("count")||search.indexOf("sum")||
+                search.indexOf("max")||search.indexOf("min")||search.indexOf("avg")||search.indexOf("having")!=-1){
+                    $.ajax({
+                        url: '/Aggregate',
+                        method:'POST',
+                        dataType:"json",
+                        data: {search:search}
+                        }).done(function(data){
+                            if(data.success){
+                                let html= data.result;
+                                return;
+                            }
+                        }).fail(function(){
+                            console.log('failed...');
+                            return;
+                        });
+                }
+                // 普通的select
+                $.ajax({
+                      url: '/select',
+                      method:'POST',
+                      dataType:"json",
+                      data: {search:search}
+                    }).done(function(data){
+                        if(data.success){
+                            //print result
+                            let html="<tbody>";
+                            let th_arr_ok = false;
+                            let th_arr = [];
+                            for(i in data.result){
+                                html = html +"<tr>";
+                                item = data.result[i];
+                                for(key in item){
+                                    if(!th_arr_ok){
+                                        th_arr.push(key)
+                                    }    
+                                    html = html + "<td data-label='"+key+"' >"+item[key]+"</td>";
+                                }
+                                th_arr_ok = true;
+                                html = html + "</tr>";
+                            }
+                            th_html="<thead><tr>"
+                            for(i in th_arr){
+                                th_html = th_html+"<td>"+th_arr[i]+"</td>";
+                            }
+                            html = th_html+"</thead>"+ html+"</tbody>";
+
+                            $('#result').html(html);
+                            return;
+                        }
+                    }).fail(function(){
+                        console.log('failed...');
+                        return;
+                    });
+
+            }
+            // 執行delete,insert,以及update的指令
+            else if(search.indexOf("delete")||search.indexOf("insert")||search.indexOf("update")!=-1){
+                $.ajax({
+                      url: '/DelInsUpd',
+                      method:'POST',
+                      dataType:"json",
+                      data: {search:search}
+                    }).done(function(data){
+                        if(data.success){
+                            let html= data.result ;
+                            alert(html);
+                            return;
+                        }
+                    }).fail(function(){
+                        console.log('failed...');
+                        return;
+                    });
+            }
+        };
+     
+    </script>
